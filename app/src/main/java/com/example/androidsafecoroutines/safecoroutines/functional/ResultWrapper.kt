@@ -5,9 +5,13 @@ import com.example.androidsafecoroutines.safecoroutines.failure.FailureHandler
 import com.example.androidsafecoroutines.safecoroutines.failure.UnknownFailure
 import com.example.androidsafecoroutines.safecoroutines.functional.ResultWrapper.Error
 import com.example.androidsafecoroutines.safecoroutines.functional.ResultWrapper.Success
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 sealed class ResultWrapper<out R> {
 
@@ -59,39 +63,43 @@ fun <R> ResultWrapper<R>.onSuccess(fn: (success: R) -> Unit): ResultWrapper<R> =
 
 suspend fun <R> safeSuspend(
     vararg failureHandlers: FailureHandler,
-    action: suspend () -> ResultWrapper<R>,
-): ResultWrapper<R> = try {
-    action()
-} catch (exception: Exception) {
-    failureHandlers.forEach { failureHandler ->
-        val error = failureHandler.handleThrowable(exception)?.wrapError()
-        if (error != null) {
-            return error
+    dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    action: suspend () -> R,
+): ResultWrapper<R> = withContext(dispatcher) {
+    try {
+        action().wrapSuccess()
+    } catch (exception: Exception) {
+        failureHandlers.forEach { failureHandler ->
+            val error = failureHandler.handleThrowable(exception)?.wrapError()
+            if (error != null) return@withContext error
         }
+        UnknownFailure(exception).wrapError()
     }
-    UnknownFailure(exception).wrapError()
 }
 
 suspend fun <R> safeSuspendIgnoreError(
-    action: suspend () -> R
-): R? = try {
-    action()
-} catch (exception: Exception) {
-    null
+    dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    action: suspend () -> R,
+): R? = withContext(dispatcher) {
+    try {
+        action()
+    } catch (exception: Exception) {
+        null
+    }
 }
 
 fun <R> Flow<R>.asResult(
-    failureHandlers: Array<out FailureHandler>,
+    vararg failureHandlers: FailureHandler,
+    dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ): Flow<ResultWrapper<R>> = map { data ->
-    Success(data)
+    data.wrapSuccess() as ResultWrapper<R>
 }.catch { exception ->
-    var handledException: Error? = null
     failureHandlers.forEach { failureHandler ->
-        handledException = failureHandler.handleThrowable(exception)?.wrapError()
-        if (handledException != null) return@forEach
+        val error = failureHandler.handleThrowable(exception)?.wrapError()
+        if (error != null) return@forEach emit(error)
     }
-    handledException ?: UnknownFailure(exception)
-}
+    emit(UnknownFailure(exception).wrapError())
+}.flowOn(dispatcher)
 
 fun <T> T.wrapSuccess() = Success(this)
 
