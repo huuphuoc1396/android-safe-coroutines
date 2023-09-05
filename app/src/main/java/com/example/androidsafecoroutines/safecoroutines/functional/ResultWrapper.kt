@@ -91,8 +91,8 @@ suspend fun <R> safeSuspendIgnoreError(
 }
 
 fun <R> Flow<R>.asResult(
-    failureHandlers: Array<out FailureHandler>,
     dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    vararg failureHandlers: FailureHandler,
 ): Flow<ResultWrapper<R>> = map { data ->
     Success(data)
 }.catch { exception ->

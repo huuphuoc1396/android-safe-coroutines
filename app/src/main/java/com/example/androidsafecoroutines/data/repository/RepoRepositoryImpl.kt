@@ -6,8 +6,9 @@ import com.example.androidsafecoroutines.data.remote.response.search.toRepo
 import com.example.androidsafecoroutines.ext.defaultEmpty
 import com.example.androidsafecoroutines.model.Repo
 import com.example.androidsafecoroutines.safecoroutines.functional.ResultWrapper
-import com.example.androidsafecoroutines.safecoroutines.functional.safeSuspend
-import com.example.androidsafecoroutines.safecoroutines.functional.wrapSuccess
+import com.example.androidsafecoroutines.safecoroutines.functional.asResult
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class RepoRepositoryImpl @Inject constructor(
@@ -15,11 +16,9 @@ class RepoRepositoryImpl @Inject constructor(
     private val remoteFailureHandler: RemoteFailureHandler,
 ) : RepoRepository {
 
-    override suspend fun searchRepos(query: String): ResultWrapper<List<Repo>> {
-        return safeSuspend(remoteFailureHandler) {
-            val searchRepoResponse = apiService.searchRepos(query)
-            val repoList = searchRepoResponse.items?.map { item -> item.toRepo() }
-            repoList.defaultEmpty().wrapSuccess()
-        }
+    override fun searchRepos(query: String): Flow<ResultWrapper<List<Repo>>> {
+        return apiService.searchRepos(query).map { response ->
+            response.items?.map { item -> item.toRepo() }.defaultEmpty()
+        }.asResult(remoteFailureHandler)
     }
 }
