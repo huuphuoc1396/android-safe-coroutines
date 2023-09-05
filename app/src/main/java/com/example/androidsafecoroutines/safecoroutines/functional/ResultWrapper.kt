@@ -58,7 +58,7 @@ fun <R> ResultWrapper<R>.onSuccess(fn: (success: R) -> Unit): ResultWrapper<R> =
     this.apply { if (this is Success) fn(data) }
 
 suspend fun <R> safeSuspend(
-    failureHandlers: Array<out FailureHandler>,
+    vararg failureHandlers: FailureHandler,
     action: suspend () -> ResultWrapper<R>,
 ): ResultWrapper<R> = try {
     action()
