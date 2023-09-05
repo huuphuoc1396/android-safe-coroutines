@@ -7,9 +7,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import com.example.androidsafecoroutines.model.Repo
-import com.example.androidsafecoroutines.main.list.RepoAdapter
+import com.example.androidsafecoroutines.data.remote.error.ApiError
 import com.example.androidsafecoroutines.databinding.FragmentMainBinding
+import com.example.androidsafecoroutines.main.list.RepoAdapter
+import com.example.androidsafecoroutines.model.Repo
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -37,6 +38,29 @@ class MainFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         buildRepoList()
         observeRepoList()
+        observeFailure()
+    }
+
+    private fun observeFailure() {
+        viewModel.failureLiveData.observe(viewLifecycleOwner) { failure ->
+            when (failure) {
+                is ApiError.Connection -> {
+                    showError("Network connection error")
+                }
+
+                is ApiError.Unauthorized -> {
+                    showError("Expired token")
+                }
+
+                is ApiError.Server -> {
+                    showError(failure.errorMessage)
+                }
+
+                is UnknownError -> {
+                    showError("Unknown error: ${failure.message}")
+                }
+            }
+        }
     }
 
     private fun observeRepoList() {
@@ -56,6 +80,14 @@ class MainFragment : Fragment() {
         AlertDialog.Builder(context)
             .setTitle("Repository detail")
             .setMessage("${repo.name} by ${repo.owner}")
+            .setPositiveButton("OK") { _, _ -> }
+            .show()
+    }
+
+    private fun showError(message: String) {
+        AlertDialog.Builder(context)
+            .setTitle("Error")
+            .setMessage(message)
             .setPositiveButton("OK") { _, _ -> }
             .show()
     }

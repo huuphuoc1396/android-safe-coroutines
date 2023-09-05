@@ -1,3 +1,3 @@
 package com.example.androidsafecoroutines.safecoroutines.failure
 
-sealed interface Failure
+interface Failure
