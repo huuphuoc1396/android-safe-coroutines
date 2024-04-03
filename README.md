@@ -1,5 +1,5 @@
 # Android Safe Coroutines
-Many blogs were written about Kotlin Coroutines in Android Development from beginner to advanced level. In my own case, I would like to share my experiences with Kotlin Coroutines in the real world which I have applied to my projects to make the stable app as well as gain a safer and more effective project.
+Several blogs were written about Kotlin Coroutines in Android Development from beginner to advanced level. In my own case, I would like to share my experiences with Kotlin Coroutines in the real world which I have applied to my projects to make the stable app as well as gain a safer and more effective project.
 
 Please check my blog on Medium to get more.
 
